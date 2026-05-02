@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "vite & electron main/index.ts",
     "build": "tsc && vite build && electron-vite build",
+    "build-backend": "cd backend && cargo build --release",
     "lint": "eslint . --ext .ts,.tsx",
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },

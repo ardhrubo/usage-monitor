@@ -2,7 +2,7 @@ import { DatabaseService } from '@main/database/db-service';
 import { AppMonitor } from '@main/monitor/app/app-monitor';
 import { WebMonitor } from '@main/monitor/web/web-monitor';
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -49,6 +49,45 @@ async function main() {
     win?.webContents.send('app-ready', {
       timestamp: Date.now(),
     });
+  });
+
+  ipcMain.handle('get-daily-summary', async (event, date) => {
+    try {
+      const summary = await db.getDailySummary(date);
+      return summary;
+    } catch (err) {
+      console.error('Error getting daily summary:', err);
+      throw err;
+    }
+  });
+
+  ipcMain.handle('get-recent-usage', async (event, limit: number) => {
+    try {
+      const usage = await db.getRecentUsage(limit);
+      return usage;
+    } catch (err) {
+      console.error('Error getting recent usage:', err);
+      throw err;
+    }
+  });
+
+  ipcMain.handle('export-csv', async () => {
+    try {
+      const csv = await db.exportToCSV();
+      return csv;
+    } catch (err) {
+      console.error('Error exporting CSV:', err);
+      throw err;
+    }
+  });
+
+  ipcMain.handle('track-website', async (event, { url, title }) => {
+    try {
+      webMonitor.trackUrl(url, title);
+    } catch (err) {
+      console.error('Error tracking website:', err);
+      throw err;
+    }
   });
 
   app.on('window-all-closed', async () => {

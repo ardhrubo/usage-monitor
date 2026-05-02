@@ -1,0 +1,22 @@
+{
+  "name": "monitor-app",
+  "version": "1.0.0",
+  "description": "Electron app for app and web monitoring",
+  "main": "main/index.ts",
+  "scripts": {
+    "dev": "vite && electron main/index.ts",
+    "build": "tsc && vite build && electron-vite build"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.0",
+    "typescript": "^5.3.3"
+  }
+}

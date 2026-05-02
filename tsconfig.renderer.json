@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "paths": {
+      "@renderer/*": ["./renderer/src/*"],
+      "@shared/*": ["../shared/*"]
+    }
+  },
+  "include": ["renderer/src/**/*.ts", "renderer/src/**/*.tsx", "shared/**/*.ts"]
+}

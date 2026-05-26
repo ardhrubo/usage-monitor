@@ -75,32 +75,76 @@ impl AppMonitor {
         #[cfg(target_os = "linux")]
         {
             use std::process::Command;
-            
-            match Command::new("sh").arg("-c").arg(
-                "xdotool getwindowfocus getwindowname 2>/dev/null || wmctrl -l 2>/dev/null | head -1 | awk '{print $3}'"
-            ).output() {
-                Ok(output) => {
-                    let window_title = String::from_utf8_lossy(&output.stdout).trim().to_string();
-                    
-                    Some(AppInfo {
-                        name: "unknown".to_string(),
-                        pid: None,
-                        window_title: if window_title.is_empty() {
-                            None
-                        } else {
-                            Some(window_title)
-                        },
-                        start_time: std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_secs(),
-                        is_productive: false,
-                    })
+
+            // Get the PID of the focused window with xdotool
+            let pid_output = match Command::new("xdotool")
+                .args(["getwindowfocus", "getwindowpid"])
+                .output()
+            {
+                Ok(out) => out,
+                Err(e) => {
+                    eprintln!("xdotool not available or failed: {e}");
+                    return None;
                 }
-                Err(_) => None,
-            }
+            };
+
+            let pid_str = String::from_utf8_lossy(&pid_output.stdout).trim().to_string();
+            let pid: Option<u32> = pid_str.parse().ok();
+
+            // Resolve process name from /proc/<pid>/comm
+            let name = if let Some(p) = pid {
+                std::fs::read_to_string(format!("/proc/{}/comm", p))
+                    .ok()
+                    .map(|s| s.trim().to_string())
+                    .unwrap_or_else(|| {
+                        // Fallback: first segment of /proc/<pid>/cmdline
+                        std::fs::read_to_string(format!("/proc/{}/cmdline", p))
+                            .ok()
+                            .and_then(|s| {
+                                s.split('\0')
+                                    .next()
+                                    .and_then(|exe| exe.split('/').last())
+                                    .map(|s| s.to_string())
+                            })
+                            .unwrap_or_else(|| "unknown".to_string())
+                    })
+            } else {
+                eprintln!("xdotool returned non-numeric PID: {pid_str:?}");
+                return None;
+            };
+
+            // Get the window title
+            let title_output = match Command::new("xdotool")
+                .args(["getwindowfocus", "getwindowname"])
+                .output()
+            {
+                Ok(out) => out,
+                Err(e) => {
+                    eprintln!("xdotool getwindowname failed: {e}");
+                    return None;
+                }
+            };
+
+            let window_title = String::from_utf8_lossy(&title_output.stdout)
+                .trim()
+                .to_string();
+
+            Some(AppInfo {
+                name,
+                pid,
+                window_title: if window_title.is_empty() {
+                    None
+                } else {
+                    Some(window_title)
+                },
+                start_time: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs(),
+                is_productive: false,
+            })
         }
-        
+
         #[cfg(not(target_os = "linux"))]
         {
             None

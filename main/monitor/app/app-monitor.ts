@@ -1,5 +1,6 @@
 import { DatabaseService } from '@main/database/db-service';
 import { UsageRecordType } from '@shared/types';
+import { getActiveWindowLinux } from './linux';
 
 export class AppMonitor {
   private db: DatabaseService;
@@ -9,6 +10,7 @@ export class AppMonitor {
     windowTitle?: string;
     pid?: number;
   } | null = null;
+  private pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(db: DatabaseService) {
     this.db = db;
@@ -78,10 +80,30 @@ export class AppMonitor {
   }
 
   private setupLinuxMonitor() {
-    console.log('Linux monitor setup - placeholder');
+    console.log('Linux monitor setup');
+    let isPolling = false;
+    this.pollIntervalId = setInterval(async () => {
+      if (isPolling) return;
+      isPolling = true;
+      try {
+        const windowInfo = await getActiveWindowLinux();
+        if (windowInfo && windowInfo.name !== 'unknown') {
+          if (!this.activeApp || this.activeApp.name !== windowInfo.name) {
+            await this.switchApp(windowInfo.name, windowInfo.windowTitle, windowInfo.pid);
+          }
+        }
+      } finally {
+        isPolling = false;
+      }
+    }, 500);
   }
 
   stopMonitoring() {
+    if (this.pollIntervalId !== null) {
+      clearInterval(this.pollIntervalId);
+      this.pollIntervalId = null;
+    }
+
     if (this.activeApp) {
       this.db.insertAppUsage({
         type: UsageRecordType.App,

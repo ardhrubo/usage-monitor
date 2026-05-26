@@ -4,6 +4,24 @@ use serde::{Serialize, Deserialize};
 use tokio::sync::Mutex;
 use std::sync::Arc;
 
+#[derive(Clone)]
+pub struct AppInfo {
+    pub name: String,
+    pub pid: Option<u32>,
+    pub window_title: Option<String>,
+    pub start_time: u64,
+    pub is_productive: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WebInfo {
+    pub url: String,
+    pub domain: String,
+    pub title: Option<String>,
+    pub start_time: u64,
+    pub is_productive: bool,
+}
+
 pub struct DatabaseService {
     conn: Connection,
 }
@@ -169,7 +187,7 @@ impl DatabaseService {
                 end_time: row.get(8)?,
                 duration: row.get(9)?,
                 timestamp: row.get(10)?,
-                is_productive: row.get(11)? == 1,
+                is_productive: row.get::<_, i32>(11)? == 1,
             })
         }).expect("Failed to query rows");
         
@@ -178,22 +196,30 @@ impl DatabaseService {
 
     pub async fn export_to_csv(&self) -> String {
         let mut stmt = self.conn.prepare(
-            "SELECT * FROM usage_records ORDER BY timestamp DESC"
+            "SELECT id, type, name, url, domain, start_time, end_time, duration, timestamp, is_productive FROM usage_records ORDER BY timestamp DESC"
         ).expect("Failed to prepare statement");
-        
+
         let mut csv = String::from("ID,Type,Name,URL,Domain,StartTime,EndTime,Duration,Timestamp,IsProductive\n");
-        
+
         let rows = stmt.query_map(params![], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?, row.get::<_, String>(2)?, 
-                row.get::<_, Option<String>>(3)?, row.get::<_, Option<String>>(4)?, 
-                row.get::<_, i64>(5)?, row.get::<_, i64>(6)?, row.get::<_, i64>(7)?, 
-                row.get::<_, i64>(8)?, row.get::<_, i64>(9)?, row.get::<_, i32>(10)?))
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(3)?,
+                row.get::<_, Option<String>>(4)?,
+                row.get::<_, i64>(5)?,
+                row.get::<_, i64>(6)?,
+                row.get::<_, i64>(7)?,
+                row.get::<_, i64>(8)?,
+                row.get::<_, i32>(9)?,
+            ))
         }).expect("Failed to query rows");
-        
+
         for row in rows {
             if let Ok((id, type_str, name, url, domain, start_time, end_time, duration, timestamp, is_productive)) = row {
                 csv.push_str(&format!(
-                    "{},{},{},{},{},{},{},{},{},{},{}\n",
+                    "{},{},{},{},{},{},{},{},{},{}\n",
                     id, type_str, name,
                     url.unwrap_or_default(),
                     domain.unwrap_or_default(),
@@ -205,7 +231,7 @@ impl DatabaseService {
                 ));
             }
         }
-        
+
         csv
     }
 }

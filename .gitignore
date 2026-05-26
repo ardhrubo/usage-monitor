@@ -4,3 +4,6 @@ data
 *.log
 .DS_Store
 /resources/icon.png
+backend/target
+backend/Cargo.lock
+package-lock.json

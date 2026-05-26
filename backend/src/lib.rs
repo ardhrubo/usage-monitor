@@ -3,9 +3,9 @@ pub mod web_monitor;
 pub mod database;
 pub mod utils;
 
-pub use app_monitor::{AppMonitor, AppInfo};
-pub use web_monitor::{WebMonitor, WebInfo};
-pub use database::{DatabaseService, UsageRecord, DailySummary};
+pub use app_monitor::AppMonitor;
+pub use web_monitor::WebMonitor;
+pub use database::{DatabaseService, UsageRecord, DailySummary, AppInfo, WebInfo};
 pub use utils::{format_duration, format_time_percentage, get_category, get_productivity};
 
 use std::sync::Arc;
@@ -33,7 +33,7 @@ impl MonitorService {
     pub async fn start_monitoring(&self) {
         {
             let mut app_mon = self.app_monitor.lock().await;
-            let app = AppMonitor::new(self.db.clone());
+            let mut app = AppMonitor::new(self.db.clone());
             app.start().await;
             *app_mon = Some(app);
         }

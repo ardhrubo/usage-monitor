@@ -1,16 +1,6 @@
 use tokio::sync::Mutex;
 use std::sync::Arc;
-use serde::{Serialize, Deserialize};
-use crate::database::DatabaseService;
-
-#[derive(Serialize, Deserialize, Clone)]
-pub struct WebInfo {
-    pub url: String,
-    pub domain: String,
-    pub title: Option<String>,
-    pub start_time: u64,
-    pub is_productive: bool,
-}
+use crate::database::{DatabaseService, WebInfo};
 
 pub struct WebMonitor {
     db: Arc<Mutex<DatabaseService>>,
